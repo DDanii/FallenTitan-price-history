@@ -1,0 +1,5 @@
+name: 'Price gatherer'
+description: 'Extends the FallenTitan server prices history.json file with current priceses'
+runs:
+  using: 'node20'
+  main: 'main.js'
