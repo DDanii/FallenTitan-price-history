@@ -15,9 +15,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const itemSelect = document.getElementById('itemSelect');
-            const priceChartCanvas = document.getElementById('priceChart');
-            const priceChartContext = priceChartCanvas.getContext('2d');
-            let priceChart; // Variable to store the chart instance
+            const priceChartCanvas = document.getElementById('priceChart').getContext('2d');
+            let priceChart;
 
             // Load JSON data
             fetch('history2.json')
@@ -33,24 +32,31 @@
 
                     // Event listener for item selection
                     itemSelect.addEventListener('change', function () {
-                        if (priceChart) {
-                            // Destroy the previous chart instance if it exists
-                            priceChart.destroy();
-                        }
-
                         const selectedItem = itemSelect.value;
-                        const itemData = data[selectedItem][0].prices;
+                        const itemData = data[selectedItem];
 
                         // Prepare data for chart
                         const timestamps = itemData.map(entry => new Date(entry.timestamp));
                         const buyPrices = itemData.map(entry => entry.buy);
                         const sellPrices = itemData.map(entry => entry.sell);
 
+                        // Format timestamps to display only month and day
+                        const formattedDates = timestamps.map(date => {
+                            const month = date.getMonth() + 1; // Months are zero-based
+                            const day = date.getDate();
+                            return `${month}/${day}`;
+                        });
+
+                        // Destroy existing chart if it exists
+                        if (priceChart) {
+                            priceChart.destroy();
+                        }
+
                         // Draw chart
-                        priceChart = new Chart(priceChartContext, {
+                        priceChart = new Chart(priceChartCanvas, {
                             type: 'line',
                             data: {
-                                labels: timestamps,
+                                labels: formattedDates,
                                 datasets: [{
                                     label: 'Buy Price',
                                     data: buyPrices,
