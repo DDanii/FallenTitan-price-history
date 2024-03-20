@@ -1,16 +1,33 @@
 const http = require('http');
 const jsdom = require("jsdom");
 const fs = require('fs');
-const file_database = 'history.json';
-let current_date = new Date();
+const file_database = 'history2.json';
+let current_date = new Date().getTime();
+
+var multiple = [
+    'rag_baseitems_wall_clock_kit','Ammo_357','M4_CarryHandleOptic','AliceBag_Black','bastard_btr70_nogun_camo','bastard_bigfoot_Doors_Hood_green',
+    'bastard_bigfoot_Doors_Hood_white','bastard_bigfoot_Doors_Hood_tan','bastard_bigfoot_Doors_Hood_red','bastard_bigfoot_Doors_Hood_blue',
+    'Candy_SWATSUV_Wheel_Green','Candy_Titus_Camonet','Candy_Titus_Camonet_WDL','Candy_Titus_Camonet_CSAT_Grey','Candy_Titus_Camonet_WDL2',
+    'Candy_Titus_Camonet_White','SIBPolice_blade1','SIBPolice_blade2','SIBPolice_blade3','SIBPolice_blade4','SIBPolice_bladem1','SIBPolice_bladem2'
+];
+
+var n = x => Number.isFinite(x) ? x : 0;
+
+var changed = (last, prev) => {
+    if (last.buy != prev.buy || last.sell != prev.sell) return true; 
+    if (last.prices.length != prev.prices.length) return true;
+    for (var i = 0; i < last.prices.length; ++i) {
+        if (last.prices[i].buy != prev.prices[i].buy || last.prices[i].sell != prev.prices[i].sell) {
+            return true; 
+        }
+    }
+    return false;
+};
 
 jsdom.JSDOM.fromURL("http://188.156.96.32/TraderPrice/TraderPrice.php").then(dom => {
 
-    var database = {};
-    if (fs.existsSync(file_database)) {
-        database = JSON.parse(fs.readFileSync(file_database));
-    }
-
+    var collected = {};
+    var current_category = null;
     var rows = dom.window.document.querySelectorAll("tr");
     for (var i = 0; i < rows.length; ++i) {
         var row = rows[i];
@@ -24,40 +41,52 @@ jsdom.JSDOM.fromURL("http://188.156.96.32/TraderPrice/TraderPrice.php").then(dom
             var entry = {
                 'buy': Number.isFinite(bprice) ? bprice : null,
                 'sell': Number.isFinite(sprice) ? sprice : null,
-                'timestamp': current_date.getTime()
+                'cat': current_category
             };
 
-            if (database[name]) {
-                var prices = database[name]['prices'];
-                if (prices.length > 0) {
-
-                    var existed_entry_index = prices.findIndex( (x) => x.timestamp == entry.timestamp );
-                    if (existed_entry_index > -1) {
-                        var e = prices[existed_entry_index];
-                        if (e.sell != entry.sell) e.sell = Math.max(e.sell, entry.sell);
-                        if (e.buy != entry.buy) e.buy = Math.min(e.buy, entry.buy);
-                    } else {
-                        database[name]['prices'].push(entry);
-                    }                    
-                } else {
-                    database[name]['prices'].push(entry);
-                }
+            if (collected[name]) {
+                collected[name].prices.push(entry);
             } else {
-                database[name] = { 'prices': [ entry ] };
+                collected[name] = { 'timestamp': current_date, 'buy': entry.buy, 'sell': entry.sell, 'prices': [ entry ] };
+            }
+        } else if (cells.length > 3) {
+            current_category = row.querySelector("th").textContent.toString().trim();
+        }
+    }
+
+    // calculate main price for collected items
+    for (var k in collected) {
+        var entry = collected[k];
+        if (multiple[k] && entry.prices.length > 1) {
+            for (var i = 0; i < entry.prices.length; ++i) {
+                if (entry.sell != entry.prices[i].sell) entry.sell = Math.max(entry.sell, entry.prices[i].sell);
+                if (entry.buy != entry.prices[i].buy) entry.buy = Math.min(entry.buy, entry.prices[i].buy);
             }
         }
     }
 
-    // remove latest price if didnt changed
-    for (var k in database) {
-        var prices = database[k]['prices'];
-        if (prices.length > 1) {
-            var last = prices[prices.length - 1];
-            var prev = prices[prices.length - 2];
+    // update database
+    var database = {};
+    if (fs.existsSync(file_database)) {
+        database = JSON.parse(fs.readFileSync(file_database));
+    }
 
-            if (last.buy == prev.buy && last.sell == prev.sell) {
-                prices.splice(prices.length - 1, 1);
+    for (var k in collected) {
+        var last = collected[k];
+
+        if (database[k] && database[k].length > 0) {
+
+            var prev = database[k][ database[k].length - 1];
+            if (changed(last, prev)) {
+                database[k].push( last );
+
+                var db = n(last.buy) - n(prev.buy);
+                var ds = n(last.sell) - n(prev.sell);
+                console.log([k, db, ds, 'updated']);
             }
+        } else {
+            database[k] = [ last ];
+            console.log([k, n(last.buy), n(last.sell), 'new']);
         }
     }
 
