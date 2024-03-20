@@ -7,14 +7,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Price History Graph</h1>
-    <label for="itemSelect">Select Item:</label>
-    <select id="itemSelect"></select>
+    <h1>Miután kiválasztottad a terméket nyomj entert</h1>
+    <label for="itemSearch">Search for Item:</label>
+    <input type="text" id="itemSearch" list="itemSelect">
+    <datalist id="itemSelect"></datalist>
     <canvas id="priceChart" width="800" height="400"></canvas>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const itemSelect = document.getElementById('itemSelect');
+            const itemSearch = document.getElementById('itemSearch');
+            const itemList = document.getElementById('itemSelect');
             const priceChartCanvas = document.getElementById('priceChart').getContext('2d');
             let priceChart;
 
@@ -26,13 +28,32 @@
                     Object.keys(data).forEach(key => {
                         const option = document.createElement('option');
                         option.value = key;
-                        option.textContent = key;
-                        itemSelect.appendChild(option);
+                        itemList.appendChild(option);
                     });
 
                     // Event listener for item selection
-                    itemSelect.addEventListener('change', function () {
-                        const selectedItem = itemSelect.value;
+                    itemSearch.addEventListener('input', function () {
+                        const searchText = itemSearch.value.toLowerCase();
+                        while (itemList.firstChild) {
+                            itemList.removeChild(itemList.firstChild);
+                        }
+                        Object.keys(data).forEach(key => {
+                            if (key.toLowerCase().includes(searchText)) {
+                                const option = document.createElement('option');
+                                option.value = key;
+                                itemList.appendChild(option);
+                            }
+                        });
+                    });
+
+                    itemList.addEventListener('input', function () {
+                        itemSearch.value = itemList.value;
+                        itemSearch.dispatchEvent(new Event('change'));
+                    });
+
+                    // Event listener for item selection
+                    itemSearch.addEventListener('change', function () {
+                        const selectedItem = itemSearch.value;
                         const itemData = data[selectedItem];
 
                         // Prepare data for chart
@@ -91,7 +112,7 @@
                     });
 
                     // Trigger change event to initialize chart with default item
-                    itemSelect.dispatchEvent(new Event('change'));
+                    itemSearch.dispatchEvent(new Event('change'));
                 })
                 .catch(error => console.error('Error loading data:', error));
         });
