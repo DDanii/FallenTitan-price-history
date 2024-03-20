@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price History Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Price History Graph</h1>
+    <label for="itemSelect">Select Item:</label>
+    <select id="itemSelect"></select>
+    <canvas id="priceChart" width="800" height="400"></canvas>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const itemSelect = document.getElementById('itemSelect');
+            const priceChartCanvas = document.getElementById('priceChart');
+            const priceChartContext = priceChartCanvas.getContext('2d');
+            let priceChart; // Variable to store the chart instance
+
+            // Load JSON data
+            fetch('history2.json')
+                .then(response => response.json())
+                .then(data => {
+                    // Populate dropdown list with options
+                    Object.keys(data).forEach(key => {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = key;
+                        itemSelect.appendChild(option);
+                    });
+
+                    // Event listener for item selection
+                    itemSelect.addEventListener('change', function () {
+                        if (priceChart) {
+                            // Destroy the previous chart instance if it exists
+                            priceChart.destroy();
+                        }
+
+                        const selectedItem = itemSelect.value;
+                        const itemData = data[selectedItem][0].prices;
+
+                        // Prepare data for chart
+                        const timestamps = itemData.map(entry => new Date(entry.timestamp));
+                        const buyPrices = itemData.map(entry => entry.buy);
+                        const sellPrices = itemData.map(entry => entry.sell);
+
+                        // Draw chart
+                        priceChart = new Chart(priceChartContext, {
+                            type: 'line',
+                            data: {
+                                labels: timestamps,
+                                datasets: [{
+                                    label: 'Buy Price',
+                                    data: buyPrices,
+                                    borderColor: 'rgb(75, 192, 192)',
+                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                    borderWidth: 1
+                                },{
+                                    label: 'Sell Price',
+                                    data: sellPrices,
+                                    borderColor: 'rgb(192, 75, 75)',
+                                    backgroundColor: 'rgba(192, 75, 75, 0.2)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    xAxes: [{
+                                        type: 'time',
+                                        time: {
+                                            unit: 'day'
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Price'
+                                        }
+                                    }]
+                                }
+                            }
+                        });
+                    });
+
+                    // Trigger change event to initialize chart with default item
+                    itemSelect.dispatchEvent(new Event('change'));
+                })
+                .catch(error => console.error('Error loading data:', error));
+        });
+    </script>
+</body>
+</html>
