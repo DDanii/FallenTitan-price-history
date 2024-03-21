@@ -2,7 +2,7 @@ name: Price Gather
 run-name: Price Gather
 on:
   schedule:
-    - cron: '30 5 * * *'
+    - cron: '0 9 * * *'
 jobs:
   Daily_routine:
     runs-on: ubuntu-latest
