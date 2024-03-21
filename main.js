@@ -2,6 +2,7 @@ const http = require('http');
 const jsdom = require("jsdom");
 const fs = require('fs');
 const file_database = 'history2.json';
+const max_age_threshold = 2592000000
 let current_date = new Date().getTime();
 
 var multiple = [
@@ -69,6 +70,24 @@ jsdom.JSDOM.fromURL("http://188.156.96.32/TraderPrice/TraderPrice.php").then(dom
     var database = {};
     if (fs.existsSync(file_database)) {
         database = JSON.parse(fs.readFileSync(file_database));
+    }
+
+    // cleanup old entries
+    for (var k in database) {
+        var entry = database[k];
+
+        for (var i = entry.length - 1; i > -1; --i) {
+            if (current_date - entry[i].timestamp >= max_age_threshold) {
+                entry.splice(i, 1);
+                console.log([k, 0, 0, 'deleted-price'])
+            }
+        }
+
+        if (entry.length == 0) {
+            delete database[k];
+
+            console.log([k, 0, 0, 'deleted'])
+        }
     }
 
     for (var k in collected) {
