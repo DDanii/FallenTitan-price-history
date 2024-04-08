@@ -1,121 +1,344 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Price History Graph</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Price History Graph</title>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<style>
+		body {
+			font-family: "Arial";
+		}
+
+		.price-up {
+			font-size: 1.3em;
+			font-weight: bold;
+			color: red;
+		}
+
+		.price-down {
+			font-size: 1.3em;
+			font-weight: bold;
+			color: green;
+		}
+
+		.buy .price-current {
+			font-size: 1.3em;
+			font-weight: bold;
+		}
+
+		.buy .price-min {
+			font-size: 0.7em;
+			color: red;
+		}
+
+		.buy .price-max {
+			font-size: 0.7em;
+			color: green;
+		}
+
+		.sell .price-current {
+			font-size: 1.3em;
+			font-weight: bold;
+		}
+
+		.sell .price-min {
+			font-size: 0.7em;
+			color: red;
+		}
+
+		.sell .price-max {
+			font-size: 0.7em;
+			color: green;
+		}
+
+
+		.sell .price-up {
+			font-size: 1.3em;
+			font-weight: bold;
+			color: green;
+		}
+
+		.sell .price-down {
+			font-size: 1.3em;
+			font-weight: bold;
+			color: red;
+		}
+
+		.updated {
+			font-size: 0.7em;
+		}
+
+		.name {
+			cursor: pointer;
+		}
+
+		.centered-div {
+			position: fixed;
+			top: 50%;
+			transform: translate(0, -50%);
+			background-color: #f0f0f0;
+			padding: 20px;
+			border: 1px solid #ccc;
+			border-radius: 5px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+		}
+
+		@media (max-width: 1800px) {
+			.centered-div {
+				position: fixed;
+				left: 0%;
+				transform: translate(0, 50%);
+				background-color: #f0f0f0;
+				padding: 20px;
+				border: 1px solid #ccc;
+				border-radius: 5px;
+				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+			}
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: Arial, sans-serif;
+			background-color: #f4f4f4;
+		}
+	</style>
 </head>
+
 <body>
-    <h1>Miután kiválasztottad a terméket nyomj entert</h1>
-    <label for="itemSearch">Search for Item:</label>
-    <input type="text" id="itemSearch" list="itemSelect">
-    <datalist id="itemSelect"></datalist>
-    <canvas id="priceChart" width="800" height="400"></canvas>
+	<table>
+		<tr><td><input type="text" id="search" style="width: 100%; box-sizing: border-box; font-size: 1.3em;" /></td><td>&nbsp;</td></tr>
+		<tr><td id="table" valign="top"></td><td id="chart"><div class="centered-div"><canvas id="priceChart" width="800" height="400"></canvas></div></td></tr>
+	</table>
+	<script>
+		var priceChart = null;
+		var historyData = null;
+		var table = null;
+		var searchTimeout = null;
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const itemSearch = document.getElementById('itemSearch');
-            const itemList = document.getElementById('itemSelect');
-            const priceChartCanvas = document.getElementById('priceChart').getContext('2d');
-            let priceChart;
+		var createSubPriceTable = function (parent, className, a, b, c, diff) {
+			var table = document.createElement('TABLE');
+			table.className = className;
+			table.border = 0;
+			table.width = '100%';
 
-            // Load JSON data
-            fetch('history2.json')
-                .then(response => response.json())
-                .then(data => {
-                    // Populate dropdown list with options
-                    Object.keys(data).forEach(key => {
-                        const option = document.createElement('option');
-                        option.value = key;
-                        itemList.appendChild(option);
-                    });
+			var tableBody = document.createElement('TBODY');
+			table.appendChild(tableBody);
 
-                    // Event listener for item selection
-                    itemSearch.addEventListener('input', function () {
-                        const searchText = itemSearch.value.toLowerCase();
-                        while (itemList.firstChild) {
-                            itemList.removeChild(itemList.firstChild);
-                        }
-                        Object.keys(data).forEach(key => {
-                            if (key.toLowerCase().includes(searchText)) {
-                                const option = document.createElement('option');
-                                option.value = key;
-                                itemList.appendChild(option);
-                            }
-                        });
-                    });
+			var tr = document.createElement('TR');
+			tableBody.appendChild(tr);
 
-                    itemList.addEventListener('input', function () {
-                        itemSearch.value = itemList.value;
-                        itemSearch.dispatchEvent(new Event('change'));
-                    });
+			// arrow
+			var td = document.createElement('TD');
+			td.rowSpan = 2;
+			td.width = '100%';
+			if (diff != undefined || diff != null) {
+				var value = '', className = '';
+				if (diff < 0) { value = '↓'; className = "price-down"; }
+				if (diff > 0) { value = '↑'; className = "price-up"; }
+				var span = document.createElement('SPAN')
+				span.className = className;
+				span.appendChild(document.createTextNode(value));
+				td.appendChild(span);
+			}
+			tr.appendChild(td);
 
-                    // Event listener for item selection
-                    itemSearch.addEventListener('change', function () {
-                        const selectedItem = itemSearch.value;
-                        const itemData = data[selectedItem];
+			// current price
+			var td = document.createElement('TD');
+			td.rowSpan = 2;
+			if (a != undefined || a != null) {
+				var value = a.toLocaleString('hu-HU');
+				var span = document.createElement('SPAN')
+				span.className = "price-current";
+				span.appendChild(document.createTextNode(value));
+				td.appendChild(span);
+			}
+			tr.appendChild(td);
 
-                        // Prepare data for chart
-                        const timestamps = itemData.map(entry => new Date(entry.timestamp));
-                        const buyPrices = itemData.map(entry => entry.buy);
-                        const sellPrices = itemData.map(entry => entry.sell);
+			// min price
+			var td = document.createElement('TD');
+			if (b != undefined || b != null) {
+				var value = b.toLocaleString('hu-HU');
+				var span = document.createElement('SPAN')
+				span.className = "price-min";
+				span.appendChild(document.createTextNode(value));
+				td.appendChild(span);
+			}
+			tr.appendChild(td);
 
-                        // Format timestamps to display only month and day
-                        const formattedDates = timestamps.map(date => {
-                            const month = date.getMonth() + 1; // Months are zero-based
-                            const day = date.getDate();
-                            return `${month}/${day}`;
-                        });
+			var tr = document.createElement('TR');
+			tableBody.appendChild(tr);
 
-                        // Destroy existing chart if it exists
-                        if (priceChart) {
-                            priceChart.destroy();
-                        }
+			// max price
+			var td = document.createElement('TD');
+			if (c != undefined || c != null) {
+				var value = c.toLocaleString('hu-HU');
+				var span = document.createElement('SPAN')
+				span.className = "price-max";
+				span.appendChild(document.createTextNode(value));
+				td.appendChild(span);
+			}
+			tr.appendChild(td);
 
-                        // Draw chart
-                        priceChart = new Chart(priceChartCanvas, {
-                            type: 'line',
-                            data: {
-                                labels: formattedDates,
-                                datasets: [{
-                                    label: 'Buy Price',
-                                    data: buyPrices,
-                                    borderColor: 'rgb(75, 192, 192)',
-                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                    borderWidth: 1
-                                },{
-                                    label: 'Sell Price',
-                                    data: sellPrices,
-                                    borderColor: 'rgb(192, 75, 75)',
-                                    backgroundColor: 'rgba(192, 75, 75, 0.2)',
-                                    borderWidth: 1
-                                }]
-                            },
-                            options: {
-                                scales: {
-                                    xAxes: [{
-                                        type: 'time',
-                                        time: {
-                                            unit: 'day'
-                                        }
-                                    }],
-                                    yAxes: [{
-                                        scaleLabel: {
-                                            display: true,
-                                            labelString: 'Price'
-                                        }
-                                    }]
-                                }
-                            }
-                        });
-                    });
+			parent.appendChild(table);
+		}
 
-                    // Trigger change event to initialize chart with default item
-                    itemSearch.dispatchEvent(new Event('change'));
-                })
-                .catch(error => console.error('Error loading data:', error));
-        });
-    </script>
+		var createPriceChart = function (k) {
+			
+			if (priceChart) {
+				priceChart.destroy();
+			}
+
+			var entries = historyData[k];
+
+			// Prepare data for chart
+			const timestamps = entries.map(entry => new Date(entry.timestamp));
+			const buyPrices = entries.map(entry => entry.buy);
+			const sellPrices = entries.map(entry => entry.sell);
+
+			// Format timestamps to display only month and day
+			const formattedDates = timestamps.map(date => {
+				const month = date.getMonth() + 1; // Months are zero-based
+				const day = date.getDate();
+				return `${month}/${day}`;
+			});
+
+			const priceChartCanvas = document.getElementById('priceChart').getContext('2d');
+			priceChart = new Chart(priceChartCanvas, {
+				type: 'line',
+				data: {
+					labels: formattedDates,
+					datasets: [{
+						label: 'Buy Price',
+						data: buyPrices,
+						borderColor: 'rgb(75, 192, 192)',
+						backgroundColor: 'rgba(75, 192, 192, 0.2)',
+						borderWidth: 1
+					}, {
+						label: 'Sell Price',
+						data: sellPrices,
+						borderColor: 'rgb(192, 75, 75)',
+						backgroundColor: 'rgba(192, 75, 75, 0.2)',
+						borderWidth: 1
+					}]
+				},
+			});
+		}
+
+		var createPriceTable = function(data, search) {
+			if (table) {
+				document.getElementById('table').removeChild(table);
+			}
+
+			table = document.createElement('TABLE');
+			table.border = 1;
+			table.cellPadding = 5;
+			table.cellSpacing = 0;
+
+			var tableBody = document.createElement('TBODY');
+			table.appendChild(tableBody);
+
+			var tr = document.createElement('TR');
+			tableBody.appendChild(tr);
+
+			var td = document.createElement('TH');
+			td.appendChild(document.createTextNode('Name'));
+			tr.appendChild(td);
+
+			var td = document.createElement('TH');
+			td.appendChild(document.createTextNode('Buy'));
+			tr.appendChild(td);
+
+			var td = document.createElement('TH');
+			td.appendChild(document.createTextNode('Sell'));
+			tr.appendChild(td);
+
+			var td = document.createElement('TH');
+			td.appendChild(document.createTextNode('Updated'));
+			tr.appendChild(td);
+
+			for (var k in data) {
+
+				if (search && k.toLowerCase().indexOf(search.toLowerCase()) === -1) {
+					continue;
+				}
+
+				let key = k;
+				var entries = data[k];
+				var last = entries[entries.length - 1];
+				var prev = last;
+
+				if (entries.length > 1) {
+					prev = entries[entries.length - 2];
+				}
+
+				var buy_diff = last.buy - prev.buy;
+				var sell_diff = last.sell - prev.sell;
+
+				var buy_min = last.buy, buy_max = last.buy, sell_min = last.sell, sell_max = last.sell;
+				for (var i = 0; i < entries.length; ++i) {
+					if (entries[i].buy < buy_min) buy_min = entries[i].buy;
+					if (entries[i].buy > buy_max) buy_max = entries[i].buy;
+					if (entries[i].sell < sell_min) sell_min = entries[i].sell;
+					if (entries[i].sell > sell_max) sell_max = entries[i].sell;
+				}
+
+				var tr = document.createElement('TR');
+				tableBody.appendChild(tr);
+
+				var td = document.createElement('TD');
+				td.className = "name";
+				td.addEventListener('click', function () {
+					createPriceChart(key);
+				});
+				td.appendChild(document.createTextNode(k));
+				tr.appendChild(td);
+
+				var td = document.createElement('TD');
+				td.align = "RIGHT";
+				createSubPriceTable(td, "buy", last.buy, buy_min, buy_max, buy_diff);
+				tr.appendChild(td);
+
+				var td = document.createElement('TD');
+				td.align = "RIGHT";
+				createSubPriceTable(td, "sell", last.sell, sell_min, sell_max, sell_diff);
+				tr.appendChild(td);
+
+				var td = document.createElement('TD');
+				td.className = "updated";
+				td.align = "RIGHT";
+				td.appendChild(document.createTextNode(new Date(last.timestamp).toISOString()));
+				tr.appendChild(td);
+			}
+
+			document.getElementById('table').appendChild(table);
+		};
+
+		document.addEventListener('DOMContentLoaded', function () {
+			fetch('https://ddanii.github.io/FallenTitan-price-history/history2.json')
+				.then(response => response.json())
+				.then(data => {
+					historyData = data;
+
+					document.getElementById('search').addEventListener('keydown', function() {
+						let input = this;
+
+						if (searchTimeout) {
+							clearTimeout(searchTimeout);
+						}
+
+						searchTimeout = setTimeout(function() {
+							createPriceTable(historyData, input.value);
+						}, 500);
+						
+					});
+					createPriceTable(data, null);
+				})
+				.catch(error => console.error('Error loading data:', error));
+		});
+	</script>
 </body>
+
 </html>
