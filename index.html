@@ -29,12 +29,12 @@
 
 		.buy .price-min {
 			font-size: 0.7em;
-			color: red;
+			color: ##323232;
 		}
 
 		.buy .price-max {
 			font-size: 0.7em;
-			color: green;
+			color: ##323232;
 		}
 
 		.sell .price-current {
@@ -44,12 +44,12 @@
 
 		.sell .price-min {
 			font-size: 0.7em;
-			color: red;
+			color: ##323232;
 		}
 
 		.sell .price-max {
 			font-size: 0.7em;
-			color: green;
+			color: ##323232;
 		}
 
 
@@ -148,12 +148,12 @@
 			}
 			tr.appendChild(td);
 
-			// min price
+			// max price
 			var td = document.createElement('TD');
-			if (b != undefined || b != null) {
-				var value = b.toLocaleString('hu-HU');
+			if (c != undefined || c != null) {
+				var value = c.toLocaleString('hu-HU');
 				var span = document.createElement('SPAN')
-				span.className = "price-min";
+				span.className = "price-max";
 				span.appendChild(document.createTextNode(value));
 				td.appendChild(span);
 			}
@@ -162,12 +162,12 @@
 			var tr = document.createElement('TR');
 			tableBody.appendChild(tr);
 
-			// max price
+			// min price
 			var td = document.createElement('TD');
-			if (c != undefined || c != null) {
-				var value = c.toLocaleString('hu-HU');
+			if (b != undefined || b != null) {
+				var value = b.toLocaleString('hu-HU');
 				var span = document.createElement('SPAN')
-				span.className = "price-max";
+				span.className = "price-min";
 				span.appendChild(document.createTextNode(value));
 				td.appendChild(span);
 			}
