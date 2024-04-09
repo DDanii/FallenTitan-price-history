@@ -75,27 +75,18 @@
 		}
 
 		.centered-div {
-			position: fixed;
-			top: 50%;
-			transform: translate(0, -50%);
+			position: sticky;
+			bottom: 0;
+			padding: 30px;
 			background-color: #f0f0f0;
-			padding: 20px;
-			border: 1px solid #ccc;
-			border-radius: 5px;
-			box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-		}
-
-		@media (max-width: 1800px) {
-			.centered-div {
-				position: fixed;
-				left: 0%;
-				transform: translate(0, 50%);
-				background-color: #f0f0f0;
-				padding: 20px;
-				border: 1px solid #ccc;
-				border-radius: 5px;
-				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-			}
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+			max-height: 600px;
+			max-width: 800px;
+			margin-left: 10px;
+			display: none;
 		}
 
 		body {
@@ -109,9 +100,10 @@
 
 <body>
 	<table>
-		<tr><td><input type="text" id="search" style="width: 100%; box-sizing: border-box; font-size: 1.3em;" /></td><td>&nbsp;</td></tr>
-		<tr><td id="table" valign="top"></td><td id="chart"><div class="centered-div"><canvas id="priceChart" width="800" height="400"></canvas></div></td></tr>
+		<tr><td><input type="text" id="search" style="width: 100%; box-sizing: border-box; font-size: 1.3em;" /></td></tr>
+		<tr><td id="table" valign="top"></td></tr>
 	</table>
+	<div id="chart" class="centered-div"><canvas id="priceChart" width="800" height="400"></canvas></div>
 	<script>
 		var priceChart = null;
 		var historyData = null;
@@ -190,6 +182,8 @@
 			if (priceChart) {
 				priceChart.destroy();
 			}
+			
+			document.getElementById('chart').style.display = 'block';
 
 			var entries = historyData[k];
 
